@@ -78,9 +78,8 @@ python calibrate_workspace.py --image path/to/image.png  # Use saved image
 ```
 
 Outputs:
-- `output/calibration_result.json` -- homography matrix and error metrics
-- `output/calibration_coords.png` -- snapshot with marker positions and X/Y axes
-- `output/marker_axes.png` -- snapshot with 3D axes drawn at each marker
+- `output/calibration_result.json` -- homography matrix and reprojection error metrics
+- `output/calibration_coords.png` -- snapshot with marker positions, world coordinates, and X/Y axes
 
 ## Camera
 
