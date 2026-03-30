@@ -1,0 +1,20 @@
+{
+    "aruco_dictionary": "DICT_5X5_100",
+    "marker_size_mm": 50,
+    "marker_ids": [0, 1, 2, 3, 4, 5],
+    "world_points": {
+        "0": [0.0, 0.0],
+        "1": [145.0, 0.0],
+        "2": [335.0, 0.0],
+        "3": [0.0, 220.0],
+        "4": [145.0, 220.0],
+        "5": [335.0, 220.0]
+    },
+    "detection": {
+        "hsv_lower": [35, 50, 50],
+        "hsv_upper": [85, 255, 255],
+        "min_contour_area": 500,
+        "max_contour_area": 100000,
+        "depth_kernel_size": 5
+    }
+}
