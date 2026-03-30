@@ -6,7 +6,7 @@ Based on the approach described in Burde et al., IEEE CASE 2023.
 
 ## Overview
 
-1. **Print** ArUco markers and place them at known positions in the workspace
+1. **Print** ArUco markers and place them at known positions in the workspace(Example PDF in repo)
 2. **Calibrate** by capturing a frame and computing the homography
 3. **Detect** objects and get their world coordinates (x, y, z)
 
