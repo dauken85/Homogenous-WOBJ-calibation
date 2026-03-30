@@ -300,6 +300,61 @@ def draw_marker_axes(color_image, corners_list, ids_flat, marker_size_mm,
     return annotated
 
 
+def compute_marker_distances(corners_list, ids_flat, marker_size_mm,
+                             image_shape, camera_matrix=None, dist_coeffs=None):
+    """
+    Compute each marker's corner-0 position in camera space via solvePnP.
+
+    Args:
+        corners_list: Marker corner arrays from detectMarkers.
+        ids_flat: 1D array of detected marker IDs.
+        marker_size_mm: Physical marker side length in mm.
+        image_shape: (height, width) of the image.
+        camera_matrix: 3x3 intrinsic matrix (optional, estimated if None).
+        dist_coeffs: Distortion coefficients (optional).
+
+    Returns:
+        dict: {marker_id: (x, y, z)} positions of corner 0 in camera space.
+    """
+    if len(corners_list) == 0:
+        return {}
+
+    h, w = image_shape[:2]
+
+    if camera_matrix is None:
+        focal_length = float(w)
+        camera_matrix = np.array([
+            [focal_length, 0, w / 2.0],
+            [0, focal_length, h / 2.0],
+            [0, 0, 1],
+        ], dtype=np.float64)
+
+    if dist_coeffs is None:
+        dist_coeffs = np.zeros(5, dtype=np.float64)
+
+    s = float(marker_size_mm)
+    obj_pts = np.array([
+        [0, 0, 0],
+        [s, 0, 0],
+        [s, s, 0],
+        [0, s, 0],
+    ], dtype=np.float64)
+
+    positions = {}
+    for corners, marker_id in zip(corners_list, ids_flat):
+        img_pts = corners.reshape(4, 2).astype(np.float64)
+        success, rvec, tvec = cv2.solvePnP(
+            obj_pts, img_pts, camera_matrix, dist_coeffs
+        )
+        if success:
+            t = tvec.flatten()
+            positions[int(marker_id)] = (
+                float(t[0]), float(t[1]), float(t[2])
+            )
+
+    return positions
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Calibrate workspace using ArUco markers and homography."
@@ -453,6 +508,45 @@ def main():
     with open(args.output, "w") as f:
         json.dump(result, f, indent=4)
     print(f"\nCalibration saved to: {args.output}")
+
+    # --- Save snapshot with marker world coordinates ---
+    coord_image = color_image.copy()
+
+    # Draw X and Y axes from the origin marker (ID 0) using the homography
+    if "0" in centroids and H is not None:
+        H_inv = np.linalg.inv(H)
+        axis_len = 100.0  # mm in world space
+        origin_world = np.array([[[0.0, 0.0]]], dtype=np.float32)
+        x_end_world = np.array([[[axis_len, 0.0]]], dtype=np.float32)
+        y_end_world = np.array([[[0.0, axis_len]]], dtype=np.float32)
+
+        origin_px = cv2.perspectiveTransform(origin_world, H_inv).reshape(2).astype(int)
+        x_end_px = cv2.perspectiveTransform(x_end_world, H_inv).reshape(2).astype(int)
+        y_end_px = cv2.perspectiveTransform(y_end_world, H_inv).reshape(2).astype(int)
+
+        # X axis (red)
+        cv2.arrowedLine(coord_image, tuple(origin_px), tuple(x_end_px),
+                        (0, 0, 255), 3, tipLength=0.15)
+        cv2.putText(coord_image, "X", (x_end_px[0] + 10, x_end_px[1]),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+        # Y axis (green)
+        cv2.arrowedLine(coord_image, tuple(origin_px), tuple(y_end_px),
+                        (0, 255, 0), 3, tipLength=0.15)
+        cv2.putText(coord_image, "Y", (y_end_px[0] + 10, y_end_px[1]),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    for tag_id_str, (cx, cy) in centroids.items():
+        ix, iy = int(cx), int(cy)
+        cv2.circle(coord_image, (ix, iy), 6, (0, 0, 255), -1)
+        if tag_id_str in world_points_config:
+            wx, wy = world_points_config[tag_id_str][:2]
+            label = f"ID{tag_id_str} [{wx:.0f},{wy:.0f}]"
+            cv2.putText(coord_image, label, (ix + 10, iy - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+    coord_path = os.path.join(os.path.dirname(args.output), "calibration_coords.png")
+    cv2.imwrite(coord_path, coord_image)
+    print(f"Coordinate snapshot saved to: {coord_path}")
 
     # --- Visualization ---
     if args.show:
