@@ -8,20 +8,18 @@ Based on the approach described in Burde et al., IEEE CASE 2023.
 
 1. **Print** ArUco markers and place them at known positions in the workspace(Example PDF in repo)
 2. **Calibrate** by capturing a frame and computing the homography
-3. **Detect** objects and get their world coordinates (x, y, z)
+
 
 ## Project Structure
 
 ```
 ├── calibrate_workspace.py   # Main calibration script
 ├── camera.py                # Orbbec Gemini 2 camera wrapper (RGB-D)
-├── detect_objects.py        # Object detection with world coordinate output
 ├── generate_markers.py      # Generate printable ArUco marker sheets
 ├── measure_markers.py       # Measure marker positions relative to origin
 ├── requirements.txt
 ├── config/
 │   ├── workspace_config.json    # Marker layout and detection parameters
-│   └── True_value.json          # Hand-measured ground truth positions
 └── output/                      # Generated calibration results and images
 ```
 
@@ -87,10 +85,8 @@ Outputs:
 
 ### 3. Detect Objects
 
-```bash
-python detect_objects.py                # Live from camera
-python detect_objects.py --image path/to/image.png
 ```
+This is your job
 
 Uses the saved homography to transform detected object centroids to world coordinates (x, y in mm). Depth (z) is obtained from the aligned depth sensor as height above the calibrated workspace plane.
 
@@ -99,8 +95,6 @@ Uses the saved homography to transform detected object centroids to world coordi
 ```bash
 python measure_markers.py
 ```
-
-Uses `solvePnP` with the known marker size to estimate each marker's 3D position relative to marker 0. Compares against ground truth values in `config/True_value.json`.
 
 ## Camera
 
